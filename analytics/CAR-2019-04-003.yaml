@@ -18,13 +18,14 @@ coverage:
     tactics:
       - TA0005
       - TA0002
-    coverage: Moderate
 implementations:
   - description: This looks for any and all usage of the scrobj DLL, which is what is used to run COM scriptlets, so it'll detect both loading from network as well as filesystem. This will have almost zero false positives so is suitable for alerting.
     code: |-
       index=__your_sysmon_events__ EventCode=1 regsvr32.exe scrobj.dll | search Image="*regsvr32.exe"
     type: splunk
     data_model: Sysmon native
+    coverage: Moderate
+    false_positives: None
 unit_tests: 
   - description: The [Atomic Red Team test for Squiblydoo](https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1117/T1117.md#atomic-test-2---regsvr32-remote-com-scriptlet-execution) is a good test case for this.
 data_model_references:

@@ -16,7 +16,6 @@ coverage:
     tactics:
       - TA0005
       - TA0002
-    coverage: Low
 implementations:
   - name: Main Pattern
     description: This just looks for all executions of regsvr32.exe that have a parent of regsvr32.exe but are not regsvr32.exe themselves (which happens). This will have a very high FP rate, but likely not on the order of millions.
@@ -24,6 +23,8 @@ implementations:
       index=__your_sysmon_data__ EventCode=1 regsvr32.exe | search ParentImage="*regsvr32.exe" AND Image!="*regsvr32.exe*"
     type: splunk
     data_model: Sysmon native
+    coverage: High
+    false_positives: High
   - name: New items since last month
     description: This uses the same logic as above, but adds lightweight baselining by ignoring all results that also showed up in the previous 30 days (it runs over 1 day).
     code: |-
@@ -31,18 +32,24 @@ implementations:
       search index=client earliest=-60d@d latest=-30d@d EventCode=1 regsvr32.exe | search ParentImage="*regsvr32.exe" AND Image!="*regsvr32.exe*" | dedup CommandLine | fields CommandLine ]
     type: splunk
     data_model: Sysmon native
+    coverage: Moderate
+    false_positives: Moderate
   - name: Spawning child processes
     description: This looks for child processes that may be spawend by regsvr32, while attempting to eliminate some of the common false positives such as werfault (Windows Error Reporting).
     code: |-
       index=__your_sysmon_data__ EventCode=1 (ParentImage="C:\\Windows\\System32\\regsvr32.exe" OR ParentImage="C:\\Windows\\SysWOW64\\regsvr32.exe") AND Image!="C:\\Windows\\System32\\regsvr32.exe" AND Image!="C:\\Windows\\SysWOW64\\regsvr32.exe" AND Image!="C:\\WINDOWS\\System32\\regsvr32.exe" AND Image!="C:\\WINDOWS\\SysWOW64\\regsvr32.exe" AND Image!="C:\\Windows\\SysWOW64\\WerFault.exe" AND Image!="C:\\Windows\\System32\\wevtutil.exe" AND Image!="C:\\Windows\\System32\\WerFault.exe"|stats values(ComputerName) as "Computer Name" values(ParentCommandLine) as "Parent Command Line" count(Image) as ImageCount by Image
     type: splunk
     data_model: Sysmon native
+    coverage: Low
+    false_positives: Moderate
   - name: Loading unsigned images
     description: This looks for unsigned images that may be loaded by regsvr32, while attempting to eliminate false positives stemming from Windows/Program Files binaries.
     code: |-
       index=__your_sysmon_data__ EventCode=7 (Image="C:\\Windows\\System32\\regsvr32.exe" OR Image="C:\\Windows\\SysWOW64\\regsvr32.exe") Signed=false ImageLoaded!="C:\\Program Files*" ImageLoaded!="C:\\Windows\\*"|stats values(ComputerName) as "Computer Name" count(ImageLoaded) as ImageLoadedCount by ImageLoaded    
     type: splunk
     data_model: Sysmon native
+    covarage: Low
+    false_positives: Moderate
 unit_tests: 
   - description: Any of the [Atomic Red Team tests for regsvr32.exe](https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1117/T1117.md) should trigger this.
 data_model_references:
